@@ -46,3 +46,9 @@ type Game struct {
 	ValueSnakeValuesMap map[int]*SnakeValues
 	Me *SnakeValues
 }
+
+type Node struct {
+	Board [][]int
+	Children []Node
+	Expanded bool
+}

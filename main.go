@@ -71,57 +71,19 @@ func move(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Printf("Game updated, id=%s\n", state.Game.Id)
 
-	upChan := make(chan float64)
-	downChan := make(chan float64)
-	leftChan := make(chan float64)
-	rightChan := make(chan float64)
-	go ComputeMoveScore(upChan, Games[state.Game.Id], UP)
-	go ComputeMoveScore(downChan, Games[state.Game.Id], DOWN)
-	go ComputeMoveScore(leftChan, Games[state.Game.Id], LEFT)
-	go ComputeMoveScore(rightChan, Games[state.Game.Id], RIGHT)
-
-	var maxScore float64 = 0
-	move := UP
-	timeChan := time.NewTimer(time.Millisecond*250).C // process the move for 250ms, leaving approx. 250ms for the network
-	for {
-		select {
-		case <-timeChan:
-			res, err := json.Marshal(struct {
-				Move string `json:"move"`
-				Shout string `json:"shout"`
-			}{
-				Move: move,
-				Shout: "shouting!",
-			})
-			if err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(res)
-			return
-		case upScore := <-upChan:
-			if upScore > maxScore {
-				move = UP
-				maxScore = upScore
-			}
-		case downScore := <-downChan:
-			if downScore > maxScore {
-				move = DOWN
-				maxScore = downScore
-			}
-		case leftScore := <-leftChan:
-			if leftScore > maxScore {
-				move = LEFT
-				maxScore = leftScore
-			}
-		case rightScore := <-rightChan:
-			if rightScore > maxScore {
-				move = RIGHT
-				maxScore = rightScore
-			}
-		}
+	res, err := json.Marshal(struct {
+		Move  string `json:"move"`
+		Shout string `json:"shout"`
+	}{
+		Move:  ComputeMove(Games[state.Game.Id], 250), // process the move for x ms, leaving (500 - x) ms for the network
+		Shout: "shouting!",
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(res)
 }
 
 func end(w http.ResponseWriter, req *http.Request) {
