@@ -48,8 +48,8 @@ func alphabeta(node Node, depth int, alpha float64, beta float64, maximizingPlay
 	}
 }
 
-func ComputeMove(game *Game, deadline) string {
-	deadlineSignal := time.NewTimer(time.Millisecond*250).C // process the move for x ms, leaving (500 - x) ms for the network
+func ComputeMove(game *Game, deadline time.Duration) string {
+	deadlineSignal := time.NewTimer(time.Millisecond*deadline).C // process the move for x ms, leaving (500 - x) ms for the network
 	// some arbitrary depth for now. The initial depth should increase as the number of snakes decreases and size of snakes increases
 	depth := 3
 	root := Node{
