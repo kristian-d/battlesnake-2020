@@ -1,41 +1,25 @@
-package main
+package game
 
 import "errors"
 
-const (
-	WALL int = -1
-	EMPTY int = 0
-	FOOD int = 1
-)
-
-var Games map[string]*Game
-
-func createSnakeMappings(snakes []Snake) (map[string]*SnakeValues, map[int]*SnakeValues) {
-	snakeValuesMap := make(map[string]*SnakeValues)
-	valueSnakeValuesMap := make(map[int]*SnakeValues)
-	for i, snake := range snakes { // TODO: does the Board's snake list already include myself?
-		snakeValues := SnakeValues{
-			Id: snake.Id,
-			Size: len(snake.Body),
-			Health: snake.Health,
-			HeadCoordinate: snake.Body[0],
-			TailCoordinate: snake.Body[len(snake.Body) - 1],
-			HeadValue: i*3 + 1 + FOOD, // ensures that values don't interfere with FOOD or one another
-			BodyValue: i*3 + 2 + FOOD,
-			TailValue: i*3 + 3 + FOOD,
-		}
-		snakeValuesMap[snake.Id] = &snakeValues
-		valueSnakeValuesMap[snakeValues.HeadValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.BodyValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.TailValue] = &snakeValues
-	}
-	return snakeValuesMap, valueSnakeValuesMap
+type GameUpdate struct {
+	Game struct {
+		Id string `json:"id"`
+	} `json:"game"`
+	Turn  int `json:"turn"`
+	Board struct {
+		Height int          `json:"height"`
+		Width  int          `json:"width"`
+		Food   []Coordinate `json:"food"`
+		Snakes []Snake      `json:"snakes"`
+	} `json:"board"`
+	You Snake `json:"you"`
 }
 
 func updateBoard(state *GameUpdate) { // currently generates a new board every update for simplicity
-	board := make([][]int, state.Board.Height + 2)
+	board := make([][]int, state.Board.Height+2)
 	for i := range board {
-		board[i] = make([]int, state.Board.Width + 2)
+		board[i] = make([]int, state.Board.Width+2)
 	}
 	snakeValuesMap := Games[state.Game.Id].SnakeValuesMap
 	allSnakes := append(state.Board.Snakes, state.You)
@@ -43,7 +27,7 @@ func updateBoard(state *GameUpdate) { // currently generates a new board every u
 		for j, coordinate := range snake.Body {
 			if j == 0 {
 				board[coordinate.Y][coordinate.X] = snakeValuesMap[snake.Id].HeadValue
-			} else if j == len(snake.Body) - 1 {
+			} else if j == len(snake.Body)-1 {
 				board[coordinate.Y][coordinate.X] = snakeValuesMap[snake.Id].TailValue
 			} else {
 				board[coordinate.Y][coordinate.X] = snakeValuesMap[snake.Id].BodyValue
@@ -63,26 +47,26 @@ func updateSnakeMappings(state *GameUpdate) {
 		snakeValuesMap.Health = snake.Health
 		snakeValuesMap.Size = len(snake.Body)
 		snakeValuesMap.HeadCoordinate = snake.Body[0]
-		snakeValuesMap.TailCoordinate = snake.Body[len(snake.Body) - 1]
+		snakeValuesMap.TailCoordinate = snake.Body[len(snake.Body)-1]
 	}
 }
 
 func CreateGame(state *GameUpdate) {
-	board := make([][]int, state.Board.Height + 2)
+	board := make([][]int, state.Board.Height+2)
 	for i := range board {
-		board[i] = make([]int, state.Board.Width + 2)
+		board[i] = make([]int, state.Board.Width+2)
 	}
 
 	allSnakes := append(state.Board.Snakes, state.You)
 	snakeValuesMap, valueSnakeValuesMap := createSnakeMappings(allSnakes)
 
 	Games[state.Game.Id] = &Game{
-		Id: state.Game.Id,
-		Board: board,
-		AliveSnakeCount: len(state.Board.Snakes) + 1, // TODO: does the Board's snake list include myself?
-		SnakeValuesMap: snakeValuesMap,
+		Id:                  state.Game.Id,
+		Board:               board,
+		AliveSnakeCount:     len(state.Board.Snakes) + 1, // TODO: does the Board's snake list include myself?
+		SnakeValuesMap:      snakeValuesMap,
 		ValueSnakeValuesMap: valueSnakeValuesMap,
-		Me: snakeValuesMap[state.You.Id],
+		Me:                  snakeValuesMap[state.You.Id],
 	}
 
 	updateBoard(state)
