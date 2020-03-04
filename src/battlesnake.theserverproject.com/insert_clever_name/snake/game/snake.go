@@ -5,7 +5,7 @@ type Coordinate struct {
 	Y int `json:"y"`
 }
 
-type Snake struct {
+type SnakeRaw struct {
 	Id     string       `json:"id"`
 	Name   string       `json:"name"`
 	Health int          `json:"health"`
@@ -13,35 +13,28 @@ type Snake struct {
 	Shout  string       `json:"shout"`
 }
 
-type SnakeValues struct {
+type Snake struct {
 	Id             string
-	Size           int
 	Health         int
-	HeadCoordinate Coordinate
-	TailCoordinate Coordinate
-	HeadValue      int
-	BodyValue      int
-	TailValue      int
+	Body           []Coordinate
+	Value          int
+	Alive          bool
 }
 
-func createSnakeMappings(snakes []Snake) (map[string]*SnakeValues, map[int]*SnakeValues) {
-	snakeValuesMap := make(map[string]*SnakeValues)
-	valueSnakeValuesMap := make(map[int]*SnakeValues)
-	for i, snake := range snakes { // TODO: does the Board's snake list already include myself?
-		snakeValues := SnakeValues{
-			Id:             snake.Id,
-			Size:           len(snake.Body),
-			Health:         snake.Health,
-			HeadCoordinate: snake.Body[0],
-			TailCoordinate: snake.Body[len(snake.Body)-1],
-			HeadValue:      i*3 + 1 + FOOD, // ensures that values don't interfere with FOOD or one another
-			BodyValue:      i*3 + 2 + FOOD,
-			TailValue:      i*3 + 3 + FOOD,
+func createSnakeMappings(rawSnakes []SnakeRaw, myId string) map[int]Snake {
+	snakesMapping := make(map[int]Snake)
+	for i, rawSnake := range rawSnakes {
+		value := i + 1 + ME // ensures that values are unique
+		if rawSnake.Id == myId {
+			value = ME
 		}
-		snakeValuesMap[snake.Id] = &snakeValues
-		valueSnakeValuesMap[snakeValues.HeadValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.BodyValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.TailValue] = &snakeValues
+		snakesMapping[value] = Snake{
+			Id:             rawSnake.Id,
+			Health:         rawSnake.Health,
+			Body:           rawSnake.Body,
+			Value:          value,
+			Alive:          true,
+		}
 	}
-	return snakeValuesMap, valueSnakeValuesMap
+	return snakesMapping
 }

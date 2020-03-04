@@ -7,22 +7,32 @@ import (
 	"battlesnake.theserverproject.com/insert_clever_name/snake/game"
 )
 
-const (
-	UP    string = "up"
-	DOWN  string = "down"
-	LEFT  string = "left"
-	RIGHT string = "right"
-)
-
 type node struct {
-	Board    [][]int
+	Game     game.Game
 	Children []node
 	Expanded bool
+	Move     string // this is the move type that generated this board from the previous board
 }
 
-func expandTree(root *node, depth int, expanded chan<- int) {
-	expanded <- 0
-	return
+func expandTree(n *node, depth int, maximizingPlayer bool) {
+	if depth == 0 {
+		return
+	}
+	if !n.Expanded {
+		expandNode(n, maximizingPlayer)
+	}
+	for _, child := range n.Children {
+		expandTree(&child, depth-1, !maximizingPlayer)
+	}
+}
+
+func expandNode(n *node, maximizingPlayer bool) {
+	n.Expanded = true
+	if maximizingPlayer {
+		n.Children = generateMyGames(*n)
+	} else {
+		n.Children = generateBoardGames(*n)
+	}
 }
 
 func evaluate(n node) float64 {
@@ -56,42 +66,25 @@ func alphabeta(n node, depth int, alpha float64, beta float64, maximizingPlayer 
 	}
 }
 
-func ComputeMove(game *game.Game, deadline time.Duration) string {
+func ComputeMove(g game.Game, deadline time.Duration) string {
 	deadlineSignal := time.NewTimer(time.Millisecond * deadline).C // process the move for x ms, leaving (500 - x) ms for the network
 	// some arbitrary depth for now. The initial depth should increase as the number of snakes decreases and size of snakes increases
 	depth := 3
 	root := node{
-		Board:    game.Board,
-		Children: make([]node, 0),
+		Game:     g,
+		Move:     NONE,
+		Expanded: false,
 	}
-	expanded := make(chan int, 1)
-	/*computed := make(chan string, 1)
-	expandTree(&root, depth, expanded)
-	for {
-		select {
-		case <-expanded:
-			// TODO: compute new depth
-			go alphabeta(root, depth, math.Inf(-1), math.Inf(1), true)
-			go expandTree(&root, depth, expanded)
-		case move := <-computed:
-			moveChan <- move
-		case <-quitChan:
-			return
-		}
-	}*/
 
-	// latestMove is flagged as unneeded, and thus the
-	// project will not compile. Commenting it for now.
-	// TODO: Use or remove the below line of code.
-	//latestMove := UP // default move is some arbitrary direction for now
+	latestMove := UP // default move is some arbitrary direction for now
 	for {
 		select {
 		case <-deadlineSignal:
-			return UP
+			return latestMove
 		default:
 			// TODO: compute new depth
-			expandTree(&root, depth, expanded)
-			//latestMove := alphabeta(root, depth, math.Inf(-1), math.Inf(1), true)
+			expandTree(&root, depth, true)
+			//latestMove = alphabeta(root, depth, math.Inf(-1), math.Inf(1), true)
 		}
 	}
 }

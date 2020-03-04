@@ -27,6 +27,7 @@ func NewSnakeServer(serverAddress string, readTimeout int, writeTimeout int) Sna
 
 // Start starts the snake server using mux
 func Start(server SnakeServer) {
+	game.InitGames()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/ping", ping)
@@ -45,16 +46,16 @@ func Start(server SnakeServer) {
 	log.Fatal(srv.ListenAndServe())
 }
 
-func clean(req *http.Request) (*game.GameUpdate, error) {
+func clean(req *http.Request) (game.GameUpdate, error) {
 	info := &game.GameUpdate{}
 	b, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		return info, err
+		return *info, err
 	}
 
 	err = json.Unmarshal(b, info)
-	return info, err
+	return *info, err
 }
 
 func end(w http.ResponseWriter, req *http.Request) {
@@ -96,7 +97,7 @@ func move(w http.ResponseWriter, req *http.Request) {
 		Move  string `json:"move"`
 		Shout string `json:"shout"`
 	}{
-		Move:  engine.ComputeMove(game.Games[state.Game.Id], 250), // process the move for x ms, leaving (500 - x) ms for the network
+		Move:  engine.ComputeMove(*game.Games[state.Game.Id], 250), // process the move for x ms, leaving (500 - x) ms for the network
 		Shout: "shouting!",
 	})
 	if err != nil {
