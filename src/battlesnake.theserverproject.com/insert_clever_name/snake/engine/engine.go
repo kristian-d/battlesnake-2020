@@ -11,7 +11,7 @@ type node struct {
 	Game     game.Game
 	Children []node
 	Expanded bool
-	Move     string // this is the move type that generated this board from the previous board
+	Move     Move // this is the move type that generated this board from the previous board
 }
 
 func expandTree(n *node, depth int, maximizingPlayer bool) {
@@ -66,13 +66,12 @@ func alphabeta(n node, depth int, alpha float64, beta float64, maximizingPlayer 
 	}
 }
 
-func ComputeMove(g game.Game, deadline time.Duration) string {
+func ComputeMove(g game.Game, deadline time.Duration) Move {
 	deadlineSignal := time.NewTimer(time.Millisecond * deadline).C // process the move for x ms, leaving (500 - x) ms for the network
 	// some arbitrary depth for now. The initial depth should increase as the number of snakes decreases and size of snakes increases
 	depth := 3
 	root := node{
 		Game:     g,
-		Move:     NONE,
 		Expanded: false,
 	}
 

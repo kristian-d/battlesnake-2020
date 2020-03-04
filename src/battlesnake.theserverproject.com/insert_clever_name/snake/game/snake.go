@@ -17,16 +17,18 @@ type Snake struct {
 	Id             string
 	Health         int
 	Body           []Coordinate
-	Value          int
+	Value          BoardValue
 	Alive          bool
 }
 
-func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[int]Snake {
-	snakesMapping := make(map[int]Snake)
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[BoardValue]Snake {
+	snakesMapping := make(map[BoardValue]Snake)
 	for i, rawSnake := range rawSnakes {
-		value := i + 1 + ME // ensures that values are unique
+		var value BoardValue
 		if rawSnake.Id == myId {
 			value = ME
+		} else {
+			value = BoardValue(i + 1) + ME // ensures that values are unique
 		}
 		snakesMapping[value] = Snake{
 			Id:             rawSnake.Id,

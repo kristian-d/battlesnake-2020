@@ -18,11 +18,11 @@ type GameUpdate struct {
 	You snakeRaw `json:"you"`
 }
 
-func createBoard(state GameUpdate, snakesMap map[int]Snake) [][]int { // currently generates a new board every update for simplicity
+func createBoard(state GameUpdate, snakesMap SnakeByValue) Board { // currently generates a new board every update for simplicity
 	height   := state.Board.Height+2
 	width    := state.Board.Width+2
-	board    := make([][]int, height)
-	contents := make([]int, height*width)
+	board    := make(Board, height)
+	contents := make([]BoardValue, height*width)
 	for i := range board {
 		start := i*width
 		end   := start+width

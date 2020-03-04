@@ -1,7 +1,8 @@
 package game
 
+type BoardValue int
 const (
-	EMPTY = iota
+	EMPTY BoardValue = iota
 	WALL
 	FOOD
 	ME
@@ -9,10 +10,12 @@ const (
 
 var Games map[string]*Game
 
+type Board [][]BoardValue
+type SnakeByValue map[BoardValue]Snake
 type Game struct {
-	Id                  string
-	Board               [][]int
-	ValueSnakeMap       map[int]Snake
+	Id            string
+	Board         Board
+	ValueSnakeMap SnakeByValue
 }
 
 func InitGames() {
