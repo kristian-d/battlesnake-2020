@@ -27,6 +27,14 @@ func createBoard(state GameUpdate, snakesMap map[int]Snake) [][]int { // current
 		start := i*width
 		end   := start+width
 		board[i] = contents[start:end:end]
+		if i == 0 || i == height-1 {
+			for j := range board[i] {
+				board[i][j] = WALL
+			}
+		} else {
+			board[i][0] = WALL
+			board[i][end-1] = WALL
+		}
 	}
 	for _, snake := range snakesMap {
 		for _, coordinate := range snake.Body {
