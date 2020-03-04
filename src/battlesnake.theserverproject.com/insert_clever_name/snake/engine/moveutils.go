@@ -3,7 +3,6 @@ package engine
 import (
 	"battlesnake.theserverproject.com/insert_clever_name/snake/game"
 	"errors"
-	"fmt"
 )
 
 const (
@@ -23,7 +22,7 @@ var OPPOSITE_MOVE = map[string]string{
 	RIGHT: LEFT,
 }
 
-func checkMove(g game.Game, coord game.Coordinate) (bool, error) {
+func checkMyMove(g game.Game, coord game.Coordinate) (bool, error) {
 	valid := true
 	value := g.Board[coord.Y][coord.X]
 	switch g.Board[coord.Y][coord.X] {
@@ -64,9 +63,8 @@ func shiftBody(body []game.Coordinate, head game.Coordinate) []game.Coordinate {
 }
 
 func moveMeTo(g game.Game, newHeadCoord game.Coordinate) *node {
-	fmt.Printf("MADE IT HERE")
 	snake := g.ValueSnakeMap[game.ME]
-	valid, err := checkMove(g, newHeadCoord)
+	valid, err := checkMyMove(g, newHeadCoord)
 	if valid && err == nil {
 		g.Board[newHeadCoord.Y][newHeadCoord.X] = snake.Value
 		if g.Board[newHeadCoord.Y][newHeadCoord.X] != game.FOOD {
