@@ -31,7 +31,7 @@ func expandNode(n *node, maximizingPlayer bool) {
 	if maximizingPlayer {
 		n.Children = generateMyGames(*n)
 	} else {
-		n.Children = generateBoardGames(*n)
+		n.Children = generateOpponentGames(*n)
 	}
 }
 

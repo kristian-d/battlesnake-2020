@@ -6,19 +6,19 @@ import (
 )
 
 const (
-	UP    string = "up"
-	DOWN  string = "down"
-	LEFT  string = "left"
-	RIGHT string = "right"
-	BOARD string = "b"
-	NONE  string = "n"
+	UP    string    = "up"
+	DOWN  string    = "down"
+	LEFT  string    = "left"
+	RIGHT string    = "right"
+	OPPONENT string = "o"
+	NONE  string    = "n"
 )
 
 var MOVES = [...]string{UP, DOWN, LEFT, RIGHT}
 var OPPOSITE_MOVE = map[string]string{
-	UP: DOWN,
-	DOWN: UP,
-	LEFT: RIGHT,
+	UP:    DOWN,
+	DOWN:  UP,
+	LEFT:  RIGHT,
 	RIGHT: LEFT,
 }
 
@@ -117,6 +117,6 @@ func generateMyGames(n node) []node {
 	return children
 }
 
-func generateBoardGames(n node) []node {
+func generateOpponentGames(n node) []node {
 	return nil
 }
