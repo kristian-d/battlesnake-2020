@@ -13,9 +13,9 @@ type GameUpdate struct {
 		Height int           `json:"height"`
 		Width  int           `json:"width"`
 		Food   []Coordinate  `json:"food"`
-		RawSnakes []SnakeRaw `json:"snakes"`
+		RawSnakes []snakeRaw `json:"snakes"`
 	} `json:"board"`
-	You SnakeRaw `json:"you"`
+	You snakeRaw `json:"you"`
 }
 
 func createBoard(state GameUpdate, snakesMap map[int]Snake) [][]int { // currently generates a new board every update for simplicity

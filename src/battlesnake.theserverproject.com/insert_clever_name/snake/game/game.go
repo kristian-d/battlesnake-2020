@@ -1,10 +1,10 @@
 package game
 
 const (
-	WALL    int = -1
-	EMPTY   int = 0
-	FOOD    int = 1
-	ME      int = 2
+	EMPTY = iota
+	WALL
+	FOOD
+	ME
 )
 
 var Games map[string]*Game

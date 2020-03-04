@@ -5,7 +5,7 @@ type Coordinate struct {
 	Y int `json:"y"`
 }
 
-type SnakeRaw struct {
+type snakeRaw struct {
 	Id     string       `json:"id"`
 	Name   string       `json:"name"`
 	Health int          `json:"health"`
@@ -21,7 +21,7 @@ type Snake struct {
 	Alive          bool
 }
 
-func createSnakeMappings(rawSnakes []SnakeRaw, myId string) map[int]Snake {
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[int]Snake {
 	snakesMapping := make(map[int]Snake)
 	for i, rawSnake := range rawSnakes {
 		value := i + 1 + ME // ensures that values are unique

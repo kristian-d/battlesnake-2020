@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	UP    string    = "up"
-	DOWN  string    = "down"
-	LEFT  string    = "left"
-	RIGHT string    = "right"
+	UP       string = "up"
+	DOWN     string = "down"
+	LEFT     string = "left"
+	RIGHT    string = "right"
 	OPPONENT string = "o"
-	NONE  string    = "n"
+	NONE     string = "n"
 )
 
 var MOVES = [...]string{UP, DOWN, LEFT, RIGHT}
@@ -23,28 +23,26 @@ var OPPOSITE_MOVE = map[string]string{
 }
 
 func checkMyMove(g game.Game, coord game.Coordinate) (bool, error) {
-	valid := true
 	value := g.Board[coord.Y][coord.X]
 	switch g.Board[coord.Y][coord.X] {
 	case game.EMPTY:
-		valid = true
+		return true, nil
 	case game.FOOD:
-		valid = true
+		return true, nil
 	case game.WALL:
-		valid = false
+		return false, nil
 	default:
 		if snakeValues, ok := g.ValueSnakeMap[value]; ok {
 			size := len(snakeValues.Body)
 			if coord.X == snakeValues.Body[size-1].X && coord.Y == snakeValues.Body[size-1].Y { // coord is a tail value and could be good or bad; evaluated during alpha-beta
-				valid = true
+				return true, nil
 			} else { // coord is a head or body value and means certain death
-				valid = false
+				return false, nil
 			}
 		} else {
-			return valid, errors.New("untracked board value")
+			return false, errors.New("untracked board value")
 		}
 	}
-	return valid, nil
 }
 
 func prependHead(body []game.Coordinate, head game.Coordinate) []game.Coordinate { // theoretically faster than using straight append(), should be tested
