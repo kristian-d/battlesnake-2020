@@ -18,6 +18,20 @@ type GameUpdate struct {
 	You snakeRaw `json:"you"`
 }
 
+func copyBoard(board Board) Board {
+	height    := len(board)
+	width     := len(board[0])
+	boardCopy := make(Board, height)
+	contents  := make([]BoardValue, height*width)
+	for i := range board {
+		start := i*width
+		end   := start+width
+		boardCopy[i] = contents[start:end:end]
+		copy(boardCopy[i], board[i])
+	}
+	return boardCopy
+}
+
 func createBoard(state GameUpdate, snakesMap SnakeByValue) Board { // currently generates a new board every update for simplicity
 	height   := state.Board.Height+2
 	width    := state.Board.Width+2
@@ -27,14 +41,6 @@ func createBoard(state GameUpdate, snakesMap SnakeByValue) Board { // currently 
 		start := i*width
 		end   := start+width
 		board[i] = contents[start:end:end]
-		if i == 0 || i == height-1 {
-			for j := range board[i] {
-				board[i][j] = WALL
-			}
-		} else {
-			board[i][0] = WALL
-			board[i][end-1] = WALL
-		}
 	}
 	for _, snake := range snakesMap {
 		for _, coordinate := range snake.Body {

@@ -175,6 +175,108 @@ func generateMyGames(n node) []node {
 	return children
 }
 
+/*func generatePossibleMoves(g game.Game, snake game.Snake) []game.Coordinate {
+	head := snake.Body[0]
+	tail := snake.Body[len(snake.Body) - 1]
+	newHeadCoords := [...]game.Coordinate{
+		{X:head.X, Y:head.Y - 1}, // UP
+		{X:head.X, Y:head.Y + 1}, // DOWN
+		{X:head.X - 1, Y:head.Y}, // LEFT
+		{X:head.X + 1, Y:head.Y}, // RIGHT
+	}
+	moveCoords := make([]game.Coordinate, 3) // three is the maximum possible open spaces around the head
+	successes := 0
+	for _, newHead := range newHeadCoords {
+		boardValue := g.Board[newHead.Y][newHead.X]
+		// assume opponent snake won't go back into body or into a wall voluntarily unless forced to
+		if (boardValue == snake.Value && !(newHead.X == tail.X || newHead.Y == tail.Y)) ||
+			boardValue == game.WALL {
+			continue
+		}
+		moveCoords[successes] = newHead
+		successes++
+	}
+	if len(moveCoords) == 0 { // snake is forced to kill itself
+		moveCoords[0] = newHeadCoords[0]
+		successes = 1
+	}
+	return moveCoords[:successes]
+}*/
+
+type Moveset map[game.Coordinate][]game.BoardValue
+
+func combineMovesets(m1, m2 Moveset) Moveset {
+	for coord, snakeValues := range m1 {
+		coordsCopy := copy(make([]game.BoardValue, len(snakeValues)), snakeValues)
+		if _, ok := m2[coord]; ok {
+			m2[coord] = append(m2[coord], coordsCopy...)
+		}
+	}
+}
+
+func generatePossibleMoves(g game.Game, snake game.Snake) []Moveset {
+	head := snake.Body[0]
+	tail := snake.Body[len(snake.Body) - 1]
+	newHeadCoords := [...]game.Coordinate{
+		{X:head.X, Y:head.Y - 1}, // UP
+		{X:head.X, Y:head.Y + 1}, // DOWN
+		{X:head.X - 1, Y:head.Y}, // LEFT
+		{X:head.X + 1, Y:head.Y}, // RIGHT
+	}
+	movesets := make([]Moveset, 3)
+	successes := 0
+	for _, newHead := range newHeadCoords {
+		boardValue := g.Board[newHead.Y][newHead.X]
+		// assume opponent snake won't go back into body or into a wall voluntarily unless forced to
+		if (boardValue == snake.Value && !(newHead.X == tail.X || newHead.Y == tail.Y)) ||
+			boardValue == game.WALL {
+			continue
+		}
+		movesets[successes][newHead] = []game.BoardValue{snake.Value}
+		successes++
+	}
+	if len(movesets) == 0 { // snake is forced to kill itself
+		movesets[0][newHeadCoords[0]] = []game.BoardValue{snake.Value}
+		successes = 1
+	}
+	return movesets[:successes]
+}
+
+func generateMovesets(g game.Game, valueSnakeMap game.SnakeByValue) <-chan Moveset {
+	snakeMovesetLists := make([]Moveset, len(valueSnakeMap))
+	totalCombinations := 1
+	i := 0
+	for _, snake := range valueSnakeMap {
+		movesets := generatePossibleMoves(g, snake)
+		snakeMovesetLists[i] = movesets
+		totalCombinations *= len(movesets)
+		i++
+	}
+	movesets := make([]Moveset, totalCombinations)
+	combineMoves(movesets, snakeMoveLists)
+}
+
+func generateMovesets2(g game.Game)
+
+/*func generateMovesets(g game.Game, valueSnakeMap game.SnakeByValue) <-chan Moveset {
+	snakeMoveLists := make([][]game.Coordinate, len(valueSnakeMap))
+	snakeOrder := make([]game.BoardValue, len(valueSnakeMap))
+	totalCombinations := 1
+	i := 0
+	for snakeValue, snake := range valueSnakeMap {
+		moveCoords := generatePossibleMoves(g, snake)
+		snakeMoveLists[i] = moveCoords
+		totalCombinations *= len(moveCoords)
+		i++
+	}
+	movesets := make([]Moveset, totalCombinations)
+	combineMoves(movesets, snakeMoveLists)
+}*/
+
 func generateOpponentGames(n node) []node {
+	g := n.Game
+	valueSnakeMap := g.ValueSnakeMap
+	delete(valueSnakeMap, game.ME)
+	moveSets := generateMovesets(g, valueSnakeMap)
 	return nil
 }
