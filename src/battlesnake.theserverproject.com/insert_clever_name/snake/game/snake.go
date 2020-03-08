@@ -1,5 +1,7 @@
 package game
 
+import "fmt"
+
 type Coordinate struct {
 	X int `json:"x"`
 	Y int `json:"y"`
@@ -13,12 +15,34 @@ type snakeRaw struct {
 	Shout  string       `json:"shout"`
 }
 
+type SnakeByValue map[BoardValue]Snake
+
 type Snake struct {
-	Id             string
-	Health         int
-	Body           []Coordinate
-	Value          BoardValue
-	Alive          bool
+	Health int
+	Body   []Coordinate
+	Value  BoardValue
+	Moved  bool
+}
+
+func copySnake(snake Snake) Snake {
+	body := make([]Coordinate, len(snake.Body))
+	for i, location := range snake.Body {
+		body[i] = location
+	}
+	return Snake{
+		Value:  snake.Value,
+		Body:   body,
+		Health: snake.Health,
+		Moved:  snake.Moved,
+	}
+}
+
+func copySnakeByValues(snakeByValues SnakeByValue) SnakeByValue {
+	newMap := make(SnakeByValue)
+	for k, v := range snakeByValues {
+		newMap[k] = copySnake(v)
+	}
+	return newMap
 }
 
 func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[BoardValue]Snake {
@@ -31,12 +55,15 @@ func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[BoardValue]Snake
 			value = BoardValue(i + 1) + ME // ensures that values are unique
 		}
 		snakesMapping[value] = Snake{
-			Id:             rawSnake.Id,
 			Health:         rawSnake.Health,
 			Body:           rawSnake.Body,
 			Value:          value,
-			Alive:          true,
+			Moved:          false,
 		}
 	}
 	return snakesMapping
+}
+
+func PrintSnake(snake Snake) {
+	fmt.Printf("Value: %d\nHealth: %d\n Size: %d\n Moved: %d\n\n", snake.Value, snake.Health, len(snake.Body), snake.Moved)
 }

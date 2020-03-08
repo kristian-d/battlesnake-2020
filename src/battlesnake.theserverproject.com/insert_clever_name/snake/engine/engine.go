@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -14,25 +15,41 @@ type node struct {
 	Move     Move // this is the move type that generated this board from the previous board
 }
 
-func expandTree(n *node, depth int, maximizingPlayer bool) {
+func expandTree(done <-chan int, n *node, depth int, maximizingPlayer bool) {
 	if depth == 0 {
 		return
 	}
 	if !n.Expanded {
-		expandNode(n, maximizingPlayer)
-	}
-	for _, child := range n.Children {
-		expandTree(&child, depth-1, !maximizingPlayer)
+		resetTurn(n.Game)
+		children := expandNode(done, *n, maximizingPlayer)
+		for child := range children {
+			n.Children = append(n.Children, child)
+			expandTree(done, &child, depth-1, !maximizingPlayer)
+		}
+		n.Expanded = true
+		n.Game.Board = nil
+		n.Game.ValueSnakeMap = nil
+	} else {
+		for _, child := range n.Children {
+			expandTree(done, &child, depth-1, !maximizingPlayer)
+		}
 	}
 }
 
-func expandNode(n *node, maximizingPlayer bool) {
-	n.Expanded = true
-	if maximizingPlayer {
-		n.Children = generateMyGames(*n)
-	} else {
-		n.Children = generateOpponentGames(*n)
-	}
+func expandNode(done <-chan int, n node, maximizingPlayer bool) <-chan node {
+	out := make(chan node)
+	go func() {
+		defer close(out)
+		c := nextGameStates(done, n.Game, maximizingPlayer)
+		for child := range c {
+			out <- node{
+				Game: child,
+				Children: nil,
+				Expanded: false,
+			}
+		}
+	}()
+	return out
 }
 
 func evaluate(n node) float64 {
@@ -67,23 +84,19 @@ func alphabeta(n node, depth int, alpha float64, beta float64, maximizingPlayer 
 }
 
 func ComputeMove(g game.Game, deadline time.Duration) Move {
-	deadlineSignal := time.NewTimer(time.Millisecond * deadline).C // process the move for x ms, leaving (500 - x) ms for the network
+	//deadlineSignal := time.NewTimer(time.Millisecond * deadline).C // process the move for x ms, leaving (500 - x) ms for the network
 	// some arbitrary depth for now. The initial depth should increase as the number of snakes decreases and size of snakes increases
-	depth := 3
+	depth := 6
 	root := node{
 		Game:     g,
+		Children: nil,
 		Expanded: false,
 	}
 
 	latestMove := UP // default move is some arbitrary direction for now
-	for {
-		select {
-		case <-deadlineSignal:
-			return latestMove
-		default:
-			// TODO: compute new depth
-			expandTree(&root, depth, true)
-			//latestMove = alphabeta(root, depth, math.Inf(-1), math.Inf(1), true)
-		}
-	}
+	done := make(chan int)
+	defer close(done)
+	expandTree(done, &root, depth, true)
+	fmt.Println("Done")
+	return latestMove
 }

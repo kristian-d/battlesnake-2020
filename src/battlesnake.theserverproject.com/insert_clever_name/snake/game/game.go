@@ -1,21 +1,19 @@
 package game
 
-type BoardValue int
-const (
-	EMPTY BoardValue = iota
-	WALL
-	FOOD
-	ME
-)
-
 var Games map[string]*Game
 
-type Board [][]BoardValue
-type SnakeByValue map[BoardValue]Snake
 type Game struct {
 	Id            string
 	Board         Board
 	ValueSnakeMap SnakeByValue
+}
+
+func CopyGame(game Game) Game {
+	return Game{
+		Id:            game.Id,
+		Board:         copyBoard(game.Board),
+		ValueSnakeMap: copySnakeByValues(game.ValueSnakeMap),
+	}
 }
 
 func InitGames() {
