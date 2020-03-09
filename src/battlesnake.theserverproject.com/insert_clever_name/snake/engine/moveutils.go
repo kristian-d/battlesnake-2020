@@ -2,6 +2,7 @@ package engine
 
 import (
 	"battlesnake.theserverproject.com/insert_clever_name/snake/game"
+	"math"
 	"sync"
 )
 
@@ -50,10 +51,6 @@ func turnComplete(g game.Game) bool {
 		}
 	}
 	return true
-}
-
-func myTurnComplete(g game.Game) bool {
-	return g.ValueSnakeMap[game.ME].Moved
 }
 
 func resetTurn(g game.Game) game.Game {
@@ -124,8 +121,8 @@ func moveSnake(g game.Game, snakeValue game.BoardValue, coord game.Coordinate) {
 }
 
 func gameBranchesBySnakeMove(g game.Game, snakeValue game.BoardValue) <-chan game.Game {
-	// the buffer prevents any of the four go routines from hanging if the receiver stops listening
-	c := make(chan game.Game, 4)
+	// the buffer prevents any of the go routines from hanging if the receiver stops listening
+	c := make(chan game.Game, 3)
 	head := g.ValueSnakeMap[snakeValue].Body[0]
 	newHeadCoords := [...]game.Coordinate{
 		{X:head.X, Y:head.Y - 1}, // UP
@@ -136,27 +133,33 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.BoardValue) <-chan gam
 
 	var wg sync.WaitGroup
 	wg.Add(4)
+	successful := 0
 	for _, coord := range newHeadCoords {
-		go func() {
-			defer wg.Done()
-			if prelimaryCheck(g, snakeValue, coord) {
+		if prelimaryCheck(g, snakeValue, coord) {
+			successful++
+			go func() {
+				defer wg.Done()
 				newGame := game.CopyGame(g)
 				moveSnake(newGame, snakeValue, coord)
 				c <- newGame
-			}
-		}()
+			}()
+		} else {
+			wg.Done()
+		}
 	}
 
 	go func() {
 		wg.Wait()
+		// if the snake could not move anywhere, its death is the only path
+		if successful == 0 {
+			newGame := game.CopyGame(g)
+			killSnake(newGame, snakeValue)
+			c <- newGame
+		}
 		close(c)
 	}()
 
 	return c
-}
-
-func myGameBranches(g game.Game) <-chan game.Game {
-	return gameBranchesBySnakeMove(g, game.ME)
 }
 
 func gameBranches(g game.Game) <-chan game.Game {
@@ -173,47 +176,48 @@ func gameBranches(g game.Game) <-chan game.Game {
 }
 
 func nextGameStates(done <-chan int, g game.Game, maximizingPlayer bool) <-chan game.Game {
-	sink := make(chan game.Game)
-	feedback := make(chan game.Game)
+	if maximizingPlayer {
+		return gameBranchesBySnakeMove(g, game.ME)
+	}
+	// buffer channels to the maximum possible number of outputs so that there are no blocks
+	maxOutputs := int64(math.Pow(3, float64(len(g.ValueSnakeMap)-1)))
+	in := make(chan game.Game, maxOutputs)
+	out := make(chan game.Game, maxOutputs)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer close(sink)
-		for branch := range feedback {
-			go func() {
-				defer wg.Done()
-				var branches <-chan game.Game
-				if maximizingPlayer {
-					branches = myGameBranches(branch)
-				} else {
-					branches = gameBranches(branch)
-				}
-				for newBranch := range branches {
-					if (maximizingPlayer && myTurnComplete(newBranch)) || (!maximizingPlayer && turnComplete(newBranch)) {
-						select {
-						case sink <- newBranch:
-						case <-done:
-							return
-						}
-					} else {
-						wg.Add(1)
-						select {
-						case feedback <- newBranch:
-						case <-done:
-							return
-						}
-					}
-				}
-			}()
-		}
 
+	pipe := func(branches <-chan game.Game) {
+		defer wg.Done()
+		for branch := range branches {
+			if turnComplete(branch) {
+				select {
+				case out <- branch:
+				case <-done:
+					return
+				}
+			} else {
+				wg.Add(1)
+				select {
+				case in <- branch:
+				case <-done:
+					wg.Done()
+					return
+				}
+			}
+		}
+	}
+
+	go func() {
+		for branch := range in {
+			go pipe(gameBranches(branch))
+		}
 	}()
 
+	wg.Add(1)
+	in <- g
 	go func() {
 		wg.Wait()
-		close(feedback)
+		close(in)
+		close(out)
 	}()
-
-	feedback <- g
-	return sink
+	return out
 }
