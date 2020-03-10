@@ -2,6 +2,7 @@ package engine
 
 import (
 	"battlesnake.theserverproject.com/insert_clever_name/snake/game"
+	"context"
 	"math"
 	"sync"
 )
@@ -53,12 +54,11 @@ func turnComplete(g game.Game) bool {
 	return true
 }
 
-func resetTurn(g game.Game) game.Game {
+func resetTurn(g game.Game) {
 	for value, snake := range g.ValueSnakeMap {
 		snake.Moved = false
 		g.ValueSnakeMap[value] = snake
 	}
-	return g
 }
 
 func prelimaryCheck(g game.Game, snakeValue game.BoardValue, coord game.Coordinate) bool {
@@ -177,7 +177,7 @@ func gameBranches(g game.Game) <-chan game.Game {
 	return gameBranchesBySnakeMove(g, largestSnakeValue)
 }
 
-func nextGameStates(done <-chan int, g game.Game, maximizingPlayer bool) <-chan game.Game {
+func nextGameStates(ctx context.Context, g game.Game, maximizingPlayer bool) <-chan game.Game {
 	if maximizingPlayer {
 		return gameBranchesBySnakeMove(g, game.ME)
 	}
@@ -193,14 +193,14 @@ func nextGameStates(done <-chan int, g game.Game, maximizingPlayer bool) <-chan 
 			if turnComplete(branch) {
 				select {
 				case out <- branch:
-				case <-done:
+				case <-ctx.Done():
 					return
 				}
 			} else {
 				wg.Add(1)
 				select {
 				case in <- branch:
-				case <-done:
+				case <-ctx.Done():
 					wg.Done()
 					return
 				}

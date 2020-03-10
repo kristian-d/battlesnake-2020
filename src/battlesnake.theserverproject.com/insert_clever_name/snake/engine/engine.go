@@ -1,9 +1,11 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	"battlesnake.theserverproject.com/insert_clever_name/snake/game"
@@ -17,7 +19,8 @@ type node struct {
 	Terminal bool
 }
 
-func expandTree(done <-chan int, n *node, depth int, maximizingPlayer bool) {
+func expandTree(ctx context.Context, n *node, depth int, maximizingPlayer bool, wg *sync.WaitGroup) {
+	defer wg.Done()
 	if depth == 0 || n.Terminal {
 		return
 	}
@@ -25,48 +28,45 @@ func expandTree(done <-chan int, n *node, depth int, maximizingPlayer bool) {
 		if maximizingPlayer {
 			resetTurn(n.Game)
 		}
-		for child := range expandNode(done, *n, maximizingPlayer) {
-			n.Children = append(n.Children, &child)
-			expandTree(done, &child, depth-1, !maximizingPlayer)
+		for childGame := range nextGameStates(ctx, n.Game, maximizingPlayer) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				terminalNode := false
+				// if we are dead or we are the only snake left, path is terminated
+				if _, ok := childGame.ValueSnakeMap[game.ME]; !ok || len(childGame.ValueSnakeMap) == 1 {
+					terminalNode = true
+				}
+				childRef := &node{
+					Game: childGame,
+					Children: nil,
+					Expanded: false,
+					Terminal: terminalNode,
+				}
+				n.Children = append(n.Children, childRef)
+				wg.Add(1)
+				go expandTree(ctx, childRef, depth-1, !maximizingPlayer, wg)
+			}
 		}
 		n.Expanded = true
 		n.Game.Board = nil
 		n.Game.ValueSnakeMap = nil
 	} else {
 		for _, child := range n.Children {
-			expandTree(done, child, depth-1, !maximizingPlayer)
+			wg.Add(1)
+			go expandTree(ctx, child, depth-1, !maximizingPlayer, wg)
 		}
 	}
 }
 
-func expandNode(done <-chan int, n node, maximizingPlayer bool) <-chan node {
-	out := make(chan node, int64(math.Pow(3, float64(len(n.Game.ValueSnakeMap)-1))))
-	go func() {
-		defer close(out)
-		for child := range nextGameStates(done, n.Game, maximizingPlayer) {
-			terminalNode := false
-			// if we are dead or we are the only snake left, path is terminated
-			if _, ok := child.ValueSnakeMap[game.ME]; !ok || len(child.ValueSnakeMap) == 1 {
-				terminalNode = true
-			}
-			out <- node{
-				Game: child,
-				Children: nil,
-				Expanded: false,
-				Terminal: terminalNode,
-			}
-		}
-	}()
-	return out
-}
-
-func evaluate(n node) float64 {
+func evaluate(g game.Game) float64 {
 	return float64(rand.Intn(100))
 }
 
 func alphabeta(n *node, depth int, alpha float64, beta float64, maximizingPlayer bool) float64 {
 	if depth == 0 || n.Terminal {
-		return evaluate(*n)
+		return evaluate(n.Game)
 	}
 	if maximizingPlayer {
 		value := math.Inf(-1) // negative infinity
@@ -92,27 +92,43 @@ func alphabeta(n *node, depth int, alpha float64, beta float64, maximizingPlayer
 }
 
 func ComputeMove(g game.Game, deadline time.Duration) Move {
-	deadlineSignal := time.NewTimer(time.Millisecond * deadline).C // process the move for x ms, leaving (500 - x) ms for the network
+	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond) // process the move for x ms, leaving (500 - x) ms for the network
+	defer cancel()
 	root := node{
 		Game:     g,
 		Children: nil,
 		Expanded: false,
 	}
 	latestMove := UP // default move is some arbitrary direction for now
-	done := make(chan int)
 	depth := 2
+	evaluated := make(chan int, 1)
+	expanded := make(chan int, 1)
+	var wg sync.WaitGroup
+	evaluated <- 1
 	for {
 		select {
-		case <-deadlineSignal:
-			done <- 1
+		case <-ctx.Done():
+			fmt.Println("Context expired, therefore returning move", latestMove)
 			return latestMove
-		default:
-			start := time.Now().UnixNano() / int64(time.Millisecond)
-			expandTree(done, &root, depth, true)
-			score := alphabeta(&root, depth, math.Inf(-1), math.Inf(1), true)
-			end := time.Now().UnixNano() / int64(time.Millisecond)
-			fmt.Printf("Evaluation took %d milliseconds for depth %d, resulting in a score of %f\n", end - start, depth, score)
-			depth += 2
+		case <-evaluated:
+			go func() {
+				start := time.Now().UnixNano() / int64(time.Millisecond)
+				wg.Add(1)
+				expandTree(ctx, &root, depth, true, &wg)
+				wg.Wait()
+				end := time.Now().UnixNano() / int64(time.Millisecond)
+				fmt.Printf("Expansion took %d milliseconds for depth %d\n", end - start, depth)
+				expanded <- 1
+			}()
+		case <-expanded:
+			go func() {
+				start := time.Now().UnixNano() / int64(time.Millisecond)
+				alphabeta(&root, depth, math.Inf(-1), math.Inf(1), true)
+				end := time.Now().UnixNano() / int64(time.Millisecond)
+				fmt.Printf("Evaluation took %d milliseconds for depth %d\n", end - start, depth)
+				depth += 2
+				evaluated <- 1
+			}()
 		}
 	}
 }

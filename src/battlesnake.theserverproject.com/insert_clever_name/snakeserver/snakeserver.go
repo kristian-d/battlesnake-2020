@@ -93,7 +93,7 @@ func move(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Printf("Game updated, id=%s\n", state.Game.Id)
 
-	result := engine.ComputeMove(*game.Games[state.Game.Id], 250) // process the move for x ms, leaving (500 - x) ms for the network
+	result := engine.ComputeMove(*game.Games[state.Game.Id], 400) // process the move for x ms, leaving (500 - x) ms for the network
 	res, err := json.Marshal(struct {
 		Move  string `json:"move"`
 		Shout string `json:"shout"`
