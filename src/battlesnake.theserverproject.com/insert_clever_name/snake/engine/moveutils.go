@@ -133,16 +133,18 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.BoardValue) <-chan gam
 
 	var wg sync.WaitGroup
 	wg.Add(4)
+	output := func(coord game.Coordinate) {
+		defer wg.Done()
+		newGame := game.CopyGame(g)
+		moveSnake(newGame, snakeValue, coord)
+		c <- newGame
+	}
+
 	successful := 0
 	for _, coord := range newHeadCoords {
 		if prelimaryCheck(g, snakeValue, coord) {
 			successful++
-			go func() {
-				defer wg.Done()
-				newGame := game.CopyGame(g)
-				moveSnake(newGame, snakeValue, coord)
-				c <- newGame
-			}()
+			go output(coord)
 		} else {
 			wg.Done()
 		}
