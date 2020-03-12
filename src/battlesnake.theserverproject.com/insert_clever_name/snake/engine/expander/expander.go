@@ -15,7 +15,7 @@ type Node struct {
 	Terminal bool
 }
 
-func gameBranchesBySnakeMove(g game.Game, snakeValue game.BoardValue) <-chan game.Game {
+func gameBranchesBySnakeMove(g game.Game, snakeValue game.GridValue) <-chan game.Game {
 	// the buffer prevents any of the go routines from hanging if the receiver stops listening
 	c := make(chan game.Game, 3)
 	head := g.ValueSnakeMap[snakeValue].Body[0]
@@ -62,7 +62,7 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.BoardValue) <-chan gam
 func gameBranches(g game.Game) <-chan game.Game {
 	valueSnakeMap := g.ValueSnakeMap
 	maxSize := 0
-	var largestSnakeValue game.BoardValue
+	var largestSnakeValue game.GridValue
 	for value, snake := range valueSnakeMap {
 		if !snake.Moved && len(snake.Body) > maxSize {
 			maxSize = len(snake.Body)
@@ -150,7 +150,7 @@ func Expand(ctx context.Context, n *Node, depth int, maximizingPlayer bool, wg *
 			}
 		}
 		n.Expanded = true
-		n.Game.Board = nil
+		n.Game.Grid = nil
 		n.Game.ValueSnakeMap = nil
 	} else {
 		for _, child := range n.Children {

@@ -2,52 +2,52 @@ package game
 
 import "fmt"
 
-type BoardValue uint8
+type GridValue uint8
 const (
-	EMPTY BoardValue = iota
+	EMPTY GridValue = iota
 	FOOD
 	ME
 )
 
-type Board [][]BoardValue
+type Grid [][]GridValue
 
-func createBoard(state GameUpdate, snakesMap SnakeByValue) Board { // currently generates a new board every update for simplicity
+func createGrid(state GameUpdate, snakesMap SnakeByValue) Grid { // currently generates a new grid every update for simplicity
 	height   := state.Board.Height
 	width    := state.Board.Width
-	board    := make(Board, height)
-	contents := make([]BoardValue, height*width)
-	for i := range board {
+	grid     := make(Grid, height)
+	contents := make([]GridValue, height*width)
+	for i := range grid {
 		start := i*width
 		end   := start+width
-		board[i] = contents[start:end:end]
+		grid[i] = contents[start:end:end]
 	}
 	for _, snake := range snakesMap {
 		for _, coordinate := range snake.Body {
-			board[coordinate.Y][coordinate.X] = snake.Value
+			grid[coordinate.Y][coordinate.X] = snake.Value
 		}
 	}
 	for _, coordinate := range state.Board.Food {
-		board[coordinate.Y][coordinate.X] = FOOD
+		grid[coordinate.Y][coordinate.X] = FOOD
 	}
-	return board
+	return grid
 }
 
-func copyBoard(board Board) Board {
-	height    := len(board)
-	width     := len(board[0])
-	boardCopy := make(Board, height)
-	contents  := make([]BoardValue, height*width)
-	for i := range board {
+func copyGrid(grid Grid) Grid {
+	height    := len(grid)
+	width     := len(grid[0])
+	gridCopy  := make(Grid, height)
+	contents  := make([]GridValue, height*width)
+	for i := range grid {
 		start := i*width
 		end   := start+width
-		boardCopy[i] = contents[start:end:end]
-		copy(boardCopy[i], board[i])
+		gridCopy[i] = contents[start:end:end]
+		copy(gridCopy[i], grid[i])
 	}
-	return boardCopy
+	return gridCopy
 }
 
-func PrintBoard(board Board) {
-	for _, row := range board {
+func PrintGrid(grid Grid) {
+	for _, row := range grid {
 		fmt.Println(row)
 	}
 }

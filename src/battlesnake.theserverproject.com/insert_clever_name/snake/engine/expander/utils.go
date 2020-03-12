@@ -20,16 +20,16 @@ func shiftBody(body []game.Coordinate, head game.Coordinate) []game.Coordinate {
 }
 
 func outOfBounds(g game.Game, coord game.Coordinate) bool {
-	height := len(g.Board)
-	width := len(g.Board[0])
+	height := len(g.Grid)
+	width := len(g.Grid[0])
 	return !(coord.X < width && coord.X >= 0 && coord.Y < height && coord.Y >= 0)
 }
 
-func killSnake(g game.Game, snakeValue game.BoardValue) {
-	board := g.Board
+func killSnake(g game.Game, snakeValue game.GridValue) {
+	grid := g.Grid
 	snake := g.ValueSnakeMap[snakeValue]
 	for _, bodyPart := range snake.Body {
-		board[bodyPart.Y][bodyPart.X] = game.EMPTY
+		grid[bodyPart.Y][bodyPart.X] = game.EMPTY
 	}
 	delete(g.ValueSnakeMap, snakeValue)
 }
@@ -50,11 +50,11 @@ func resetTurn(g game.Game) {
 	}
 }
 
-func prelimaryCheck(g game.Game, snakeValue game.BoardValue, coord game.Coordinate) bool {
+func prelimaryCheck(g game.Game, snakeValue game.GridValue, coord game.Coordinate) bool {
 	if outOfBounds(g, coord) {
-		return false // moving off of the board, therefore guaranteed death
+		return false // moving off of the grid, therefore guaranteed death
 	}
-	value := g.Board[coord.Y][coord.X]
+	value := g.Grid[coord.Y][coord.X]
 	if value == game.FOOD {
 		return true // moving into a location with food, therefore death is not guaranteed
 	}

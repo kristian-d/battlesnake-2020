@@ -4,14 +4,14 @@ var Games map[string]*Game
 
 type Game struct {
 	Id            string
-	Board         Board
+	Grid          Grid
 	ValueSnakeMap SnakeByValue
 }
 
 func CopyGame(game Game) Game {
 	return Game{
 		Id:            game.Id,
-		Board:         copyBoard(game.Board),
+		Grid:          copyGrid(game.Grid),
 		ValueSnakeMap: copySnakeByValues(game.ValueSnakeMap),
 	}
 }
