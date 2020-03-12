@@ -13,7 +13,7 @@ import (
 
 func alphabeta(n *expander.Node, depth int, alpha float64, beta float64, maximizingPlayer bool) float64 {
 	if depth == 0 || n.Terminal {
-		return evaluator.Evaluate(n.Game)
+		return evaluator.Evaluate(n.Board)
 	}
 	if maximizingPlayer {
 		value := math.Inf(-1) // negative infinity
@@ -42,7 +42,7 @@ func ComputeMove(g game.Game, deadline time.Duration) expander.Move {
 	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond) // process the move for x ms, leaving (500 - x) ms for the network
 	defer cancel()
 	root := expander.Node{
-		Game:     g,
+		Board:    game.CopyBoard(g.Board),
 		Children: nil,
 		Expanded: false,
 	}

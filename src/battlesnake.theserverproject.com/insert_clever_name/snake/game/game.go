@@ -3,16 +3,19 @@ package game
 var Games map[string]*Game
 
 type Game struct {
-	Id            string
-	Grid          Grid
-	ValueSnakeMap SnakeByValue
+	Id    string
+	Board Board
 }
 
-func CopyGame(game Game) Game {
-	return Game{
-		Id:            game.Id,
-		Grid:          copyGrid(game.Grid),
-		ValueSnakeMap: copySnakeByValues(game.ValueSnakeMap),
+type Board struct {
+	Grid   Grid
+	Snakes SnakeByValue
+}
+
+func CopyBoard(board Board) Board {
+	return Board{
+		Grid: copyGrid(board.Grid),
+		Snakes: copySnakeByValues(board.Snakes),
 	}
 }
 

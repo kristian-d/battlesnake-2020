@@ -5,6 +5,6 @@ import (
 	"math/rand"
 )
 
-func Evaluate(g game.Game) float64 {
+func Evaluate(b game.Board) float64 {
 	return float64(rand.Intn(100))
 }

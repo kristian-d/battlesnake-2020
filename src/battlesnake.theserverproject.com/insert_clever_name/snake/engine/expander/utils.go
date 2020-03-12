@@ -19,23 +19,23 @@ func shiftBody(body []game.Coordinate, head game.Coordinate) []game.Coordinate {
 	return body
 }
 
-func outOfBounds(g game.Game, coord game.Coordinate) bool {
-	height := len(g.Grid)
-	width := len(g.Grid[0])
+func outOfBounds(b game.Board, coord game.Coordinate) bool {
+	height := len(b.Grid)
+	width := len(b.Grid[0])
 	return !(coord.X < width && coord.X >= 0 && coord.Y < height && coord.Y >= 0)
 }
 
-func killSnake(g game.Game, snakeValue game.GridValue) {
-	grid := g.Grid
-	snake := g.ValueSnakeMap[snakeValue]
+func killSnake(b game.Board, snakeValue game.GridValue) {
+	grid := b.Grid
+	snake := b.Snakes[snakeValue]
 	for _, bodyPart := range snake.Body {
 		grid[bodyPart.Y][bodyPart.X] = game.EMPTY
 	}
-	delete(g.ValueSnakeMap, snakeValue)
+	delete(b.Snakes, snakeValue)
 }
 
-func turnComplete(g game.Game) bool {
-	for _, snake := range g.ValueSnakeMap {
+func turnComplete(b game.Board) bool {
+	for _, snake := range b.Snakes {
 		if !snake.Moved && snake.Value != game.ME {
 			return false
 		}
@@ -43,30 +43,30 @@ func turnComplete(g game.Game) bool {
 	return true
 }
 
-func resetTurn(g game.Game) {
-	for value, snake := range g.ValueSnakeMap {
+func resetTurn(b game.Board) {
+	for value, snake := range b.Snakes {
 		snake.Moved = false
-		g.ValueSnakeMap[value] = snake
+		b.Snakes[value] = snake
 	}
 }
 
-func prelimaryCheck(g game.Game, snakeValue game.GridValue, coord game.Coordinate) bool {
-	if outOfBounds(g, coord) {
+func prelimaryCheck(b game.Board, snakeValue game.GridValue, coord game.Coordinate) bool {
+	if outOfBounds(b, coord) {
 		return false // moving off of the grid, therefore guaranteed death
 	}
-	value := g.Grid[coord.Y][coord.X]
+	value := b.Grid[coord.Y][coord.X]
 	if value == game.FOOD {
 		return true // moving into a location with food, therefore death is not guaranteed
 	}
-	if g.ValueSnakeMap[snakeValue].Health == 1 {
+	if b.Snakes[snakeValue].Health == 1 {
 		return false // starvation is next turn and location does not contain food, therefore guaranteed death
 	}
 	if value == game.EMPTY {
 		return true // moving into empty location, therefore death is not guaranteed
 	}
-	otherSnake := g.ValueSnakeMap[value]
+	otherSnake := b.Snakes[value]
 	if otherSnake.Moved {
-		if coord.X == otherSnake.Body[0].X && coord.Y == otherSnake.Body[0].Y && len(g.ValueSnakeMap[snakeValue].Body) > len(otherSnake.Body) {
+		if coord.X == otherSnake.Body[0].X && coord.Y == otherSnake.Body[0].Y && len(b.Snakes[snakeValue].Body) > len(otherSnake.Body) {
 			return true // moving onto a head value and has size advantage, therefore death is not guaranteed
 		} else {
 			return false // moving onto a body value, tail value, or head value without size advantage, therefore guaranteed death

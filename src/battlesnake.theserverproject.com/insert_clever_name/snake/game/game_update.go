@@ -23,16 +23,18 @@ func CreateGame(state GameUpdate) {
 	grid      := createGrid(state, snakesMap)
 
 	Games[state.Game.Id] = &Game{
-		Id:            state.Game.Id,
-		Grid:          grid,
-		ValueSnakeMap: snakesMap,
+		Id:    state.Game.Id,
+		Board: Board{
+			Grid:   grid,
+			Snakes: snakesMap,
+		},
 	}
 }
 
 func UpdateGame(state GameUpdate) error {
 	if game, ok := Games[state.Game.Id]; ok {
-		game.ValueSnakeMap = createSnakeMappings(state.Board.RawSnakes, state.You.Id)
-		game.Grid          = createGrid(state, game.ValueSnakeMap)
+		game.Board.Snakes = createSnakeMappings(state.Board.RawSnakes, state.You.Id)
+		game.Board.Grid   = createGrid(state, game.Board.Snakes)
 		return nil
 	} else {
 		return errors.New("no game with given id for update")

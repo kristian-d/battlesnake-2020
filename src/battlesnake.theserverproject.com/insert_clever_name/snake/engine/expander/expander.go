@@ -8,17 +8,17 @@ import (
 )
 
 type Node struct {
-	Game     game.Game
+	Board    game.Board
 	Children []*Node
 	Expanded bool
 	Move     Move // this is the move type that generated this board from the previous board
 	Terminal bool
 }
 
-func gameBranchesBySnakeMove(g game.Game, snakeValue game.GridValue) <-chan game.Game {
+func boardBranchesBySnakeMove(b game.Board, snakeValue game.GridValue) <-chan game.Board {
 	// the buffer prevents any of the go routines from hanging if the receiver stops listening
-	c := make(chan game.Game, 3)
-	head := g.ValueSnakeMap[snakeValue].Body[0]
+	c := make(chan game.Board, 3)
+	head := b.Snakes[snakeValue].Body[0]
 	newHeadCoords := [...]game.Coordinate{
 		{X:head.X, Y:head.Y - 1}, // UP
 		{X:head.X, Y:head.Y + 1}, // DOWN
@@ -30,14 +30,14 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.GridValue) <-chan game
 	wg.Add(4)
 	output := func(coord game.Coordinate) {
 		defer wg.Done()
-		newGame := game.CopyGame(g)
+		newGame := game.CopyBoard(b)
 		moveSnake(newGame, snakeValue, coord)
 		c <- newGame
 	}
 
 	successful := 0
 	for _, coord := range newHeadCoords {
-		if prelimaryCheck(g, snakeValue, coord) {
+		if prelimaryCheck(b, snakeValue, coord) {
 			successful++
 			go output(coord)
 		} else {
@@ -49,7 +49,7 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.GridValue) <-chan game
 		wg.Wait()
 		// if the snake could not move anywhere, its death is the only path
 		if successful == 0 {
-			newGame := game.CopyGame(g)
+			newGame := game.CopyBoard(b)
 			killSnake(newGame, snakeValue)
 			c <- newGame
 		}
@@ -59,8 +59,8 @@ func gameBranchesBySnakeMove(g game.Game, snakeValue game.GridValue) <-chan game
 	return c
 }
 
-func gameBranches(g game.Game) <-chan game.Game {
-	valueSnakeMap := g.ValueSnakeMap
+func boardBranches(b game.Board) <-chan game.Board {
+	valueSnakeMap := b.Snakes
 	maxSize := 0
 	var largestSnakeValue game.GridValue
 	for value, snake := range valueSnakeMap {
@@ -69,20 +69,20 @@ func gameBranches(g game.Game) <-chan game.Game {
 			largestSnakeValue = value
 		}
 	}
-	return gameBranchesBySnakeMove(g, largestSnakeValue)
+	return boardBranchesBySnakeMove(b, largestSnakeValue)
 }
 
-func nextGameStates(ctx context.Context, g game.Game, maximizingPlayer bool) <-chan game.Game {
+func nextBoardStates(ctx context.Context, b game.Board, maximizingPlayer bool) <-chan game.Board {
 	if maximizingPlayer {
-		return gameBranchesBySnakeMove(g, game.ME)
+		return boardBranchesBySnakeMove(b, game.ME)
 	}
 	// buffer channels to the maximum possible number of outputs so that there are no blocks
-	maxOutputs := int64(math.Pow(3, float64(len(g.ValueSnakeMap)-1)))
-	in := make(chan game.Game, maxOutputs)
-	out := make(chan game.Game, maxOutputs)
+	maxOutputs := int64(math.Pow(3, float64(len(b.Snakes)-1)))
+	in := make(chan game.Board, maxOutputs)
+	out := make(chan game.Board, maxOutputs)
 	var wg sync.WaitGroup
 
-	pipe := func(branches <-chan game.Game) {
+	pipe := func(branches <-chan game.Board) {
 		defer wg.Done()
 		for branch := range branches {
 			if turnComplete(branch) {
@@ -105,12 +105,12 @@ func nextGameStates(ctx context.Context, g game.Game, maximizingPlayer bool) <-c
 
 	go func() {
 		for branch := range in {
-			go pipe(gameBranches(branch))
+			go pipe(boardBranches(branch))
 		}
 	}()
 
 	wg.Add(1)
-	in <- g
+	in <- b
 	go func() {
 		wg.Wait()
 		close(in)
@@ -126,20 +126,20 @@ func Expand(ctx context.Context, n *Node, depth int, maximizingPlayer bool, wg *
 	}
 	if !n.Expanded {
 		if maximizingPlayer {
-			resetTurn(n.Game)
+			resetTurn(n.Board)
 		}
-		for childGame := range nextGameStates(ctx, n.Game, maximizingPlayer) {
+		for childBoard := range nextBoardStates(ctx, n.Board, maximizingPlayer) {
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				terminalNode := false
 				// if we are dead or we are the only snake left, path is terminated
-				if _, ok := childGame.ValueSnakeMap[game.ME]; !ok || len(childGame.ValueSnakeMap) == 1 {
+				if _, ok := childBoard.Snakes[game.ME]; !ok || len(childBoard.Snakes) == 1 {
 					terminalNode = true
 				}
 				childRef := &Node{
-					Game: childGame,
+					Board:    childBoard,
 					Children: nil,
 					Expanded: false,
 					Terminal: terminalNode,
@@ -149,9 +149,9 @@ func Expand(ctx context.Context, n *Node, depth int, maximizingPlayer bool, wg *
 				go Expand(ctx, childRef, depth-1, !maximizingPlayer, wg)
 			}
 		}
-		n.Expanded = true
-		n.Game.Grid = nil
-		n.Game.ValueSnakeMap = nil
+		n.Expanded     = true
+		n.Board.Grid   = nil
+		n.Board.Snakes = nil
 	} else {
 		for _, child := range n.Children {
 			wg.Add(1)
