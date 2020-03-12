@@ -3,8 +3,9 @@ package game
 var Games map[string]*Game
 
 type Game struct {
-	Id    string
-	Board Board
+	Id               string
+	Board            Board
+	PreviousMaxDepth int
 }
 
 type Board struct {

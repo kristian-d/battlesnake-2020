@@ -28,6 +28,7 @@ func CreateGame(state GameUpdate) {
 			Grid:   grid,
 			Snakes: snakesMap,
 		},
+		PreviousMaxDepth: 0,
 	}
 }
 

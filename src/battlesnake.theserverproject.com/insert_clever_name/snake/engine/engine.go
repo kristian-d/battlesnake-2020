@@ -47,7 +47,10 @@ func ComputeMove(g game.Game, deadline time.Duration) expander.Move {
 		Expanded: false,
 	}
 	latestMove := expander.UP // default move is some arbitrary direction for now
-	depth := 2
+	depth := g.PreviousMaxDepth - 2
+	if depth < 2 {
+		depth = 2
+	}
 	evaluated := make(chan int, 1)
 	expanded := make(chan int, 1)
 	var wg sync.WaitGroup
@@ -56,6 +59,7 @@ func ComputeMove(g game.Game, deadline time.Duration) expander.Move {
 		select {
 		case <-ctx.Done():
 			fmt.Println("Context expired, therefore returning move", latestMove)
+			g.PreviousMaxDepth = depth
 			return latestMove
 		case <-evaluated:
 			go func() {
