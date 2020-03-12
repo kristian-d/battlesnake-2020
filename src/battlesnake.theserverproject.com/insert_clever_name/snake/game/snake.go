@@ -1,11 +1,13 @@
 package game
 
+import "fmt"
+
 type Coordinate struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 }
 
-type Snake struct {
+type snakeRaw struct {
 	Id     string       `json:"id"`
 	Name   string       `json:"name"`
 	Health int          `json:"health"`
@@ -13,35 +15,55 @@ type Snake struct {
 	Shout  string       `json:"shout"`
 }
 
-type SnakeValues struct {
-	Id             string
-	Size           int
-	Health         int
-	HeadCoordinate Coordinate
-	TailCoordinate Coordinate
-	HeadValue      int
-	BodyValue      int
-	TailValue      int
+type SnakeByValue map[BoardValue]Snake
+
+type Snake struct {
+	Health int
+	Body   []Coordinate
+	Value  BoardValue
+	Moved  bool
 }
 
-func createSnakeMappings(snakes []Snake) (map[string]*SnakeValues, map[int]*SnakeValues) {
-	snakeValuesMap := make(map[string]*SnakeValues)
-	valueSnakeValuesMap := make(map[int]*SnakeValues)
-	for i, snake := range snakes { // TODO: does the Board's snake list already include myself?
-		snakeValues := SnakeValues{
-			Id:             snake.Id,
-			Size:           len(snake.Body),
-			Health:         snake.Health,
-			HeadCoordinate: snake.Body[0],
-			TailCoordinate: snake.Body[len(snake.Body)-1],
-			HeadValue:      i*3 + 1 + FOOD, // ensures that values don't interfere with FOOD or one another
-			BodyValue:      i*3 + 2 + FOOD,
-			TailValue:      i*3 + 3 + FOOD,
-		}
-		snakeValuesMap[snake.Id] = &snakeValues
-		valueSnakeValuesMap[snakeValues.HeadValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.BodyValue] = &snakeValues
-		valueSnakeValuesMap[snakeValues.TailValue] = &snakeValues
+func copySnake(snake Snake) Snake {
+	body := make([]Coordinate, len(snake.Body))
+	for i, location := range snake.Body {
+		body[i] = location
 	}
-	return snakeValuesMap, valueSnakeValuesMap
+	return Snake{
+		Value:  snake.Value,
+		Body:   body,
+		Health: snake.Health,
+		Moved:  snake.Moved,
+	}
+}
+
+func copySnakeByValues(snakeByValues SnakeByValue) SnakeByValue {
+	newMap := make(SnakeByValue)
+	for k, v := range snakeByValues {
+		newMap[k] = copySnake(v)
+	}
+	return newMap
+}
+
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[BoardValue]Snake {
+	snakesMapping := make(map[BoardValue]Snake)
+	for i, rawSnake := range rawSnakes {
+		var value BoardValue
+		if rawSnake.Id == myId {
+			value = ME
+		} else {
+			value = BoardValue(i + 1) + ME // ensures that values are unique
+		}
+		snakesMapping[value] = Snake{
+			Health:         rawSnake.Health,
+			Body:           rawSnake.Body,
+			Value:          value,
+			Moved:          false,
+		}
+	}
+	return snakesMapping
+}
+
+func PrintSnake(snake Snake) {
+	fmt.Printf("Value: %d\nHealth: %d\n Size: %d\n Moved: %d\n\n", snake.Value, snake.Health, len(snake.Body), snake.Moved)
 }

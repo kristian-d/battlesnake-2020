@@ -1,18 +1,21 @@
 package game
 
-const (
-	WALL  int = -1
-	EMPTY int = 0
-	FOOD  int = 1
-)
-
 var Games map[string]*Game
 
 type Game struct {
-	Id                  string
-	Board               [][]int
-	AliveSnakeCount     int
-	SnakeValuesMap      map[string]*SnakeValues
-	ValueSnakeValuesMap map[int]*SnakeValues
-	Me                  *SnakeValues
+	Id            string
+	Board         Board
+	ValueSnakeMap SnakeByValue
+}
+
+func CopyGame(game Game) Game {
+	return Game{
+		Id:            game.Id,
+		Board:         copyBoard(game.Board),
+		ValueSnakeMap: copySnakeByValues(game.ValueSnakeMap),
+	}
+}
+
+func InitGames() {
+	Games = make(map[string]*Game)
 }
