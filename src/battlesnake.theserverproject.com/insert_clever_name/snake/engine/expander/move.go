@@ -2,14 +2,6 @@ package expander
 
 import "battlesnake.theserverproject.com/insert_clever_name/snake/game"
 
-type Move string
-const (
-	UP    Move = "up"
-	DOWN  Move = "down"
-	LEFT  Move = "left"
-	RIGHT Move = "right"
-)
-
 func moveSnake(b game.Board, snakeValue game.GridValue, coord game.Coordinate) {
 	grid := b.Grid
 	value := grid[coord.Y][coord.X]

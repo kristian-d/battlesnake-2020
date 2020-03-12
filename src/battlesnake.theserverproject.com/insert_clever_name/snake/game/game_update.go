@@ -27,6 +27,7 @@ func CreateGame(state GameUpdate) {
 		Board: Board{
 			Grid:   grid,
 			Snakes: snakesMap,
+			MoveCoordinate: MoveCoordinate{NONE, Coordinate{X:-1, Y:-1}},
 		},
 		PreviousMaxDepth: 0,
 	}

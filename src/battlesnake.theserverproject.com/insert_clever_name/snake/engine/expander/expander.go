@@ -11,7 +11,7 @@ type Node struct {
 	Board    game.Board
 	Children []*Node
 	Expanded bool
-	Move     Move // this is the move type that generated this board from the previous board
+	Move     game.Move // this is the move type that generated this board from the previous board
 	Terminal bool
 }
 
@@ -19,27 +19,28 @@ func boardBranchesBySnakeMove(b game.Board, snakeValue game.GridValue) <-chan ga
 	// the buffer prevents any of the go routines from hanging if the receiver stops listening
 	c := make(chan game.Board, 3)
 	head := b.Snakes[snakeValue].Body[0]
-	newHeadCoords := [...]game.Coordinate{
-		{X:head.X, Y:head.Y - 1}, // UP
-		{X:head.X, Y:head.Y + 1}, // DOWN
-		{X:head.X - 1, Y:head.Y}, // LEFT
-		{X:head.X + 1, Y:head.Y}, // RIGHT
+	moveCoords := [...]game.MoveCoordinate{
+		{game.UP, game.Coordinate{X:head.X, Y:head.Y - 1}},
+		{game.DOWN, game.Coordinate{X:head.X, Y:head.Y + 1}},
+		{game.LEFT, game.Coordinate{X:head.X - 1, Y:head.Y}},
+		{game.RIGHT, game.Coordinate{X:head.X + 1, Y:head.Y}},
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(4)
-	output := func(coord game.Coordinate) {
+	output := func(moveCoord game.MoveCoordinate) {
 		defer wg.Done()
-		newGame := game.CopyBoard(b)
-		moveSnake(newGame, snakeValue, coord)
-		c <- newGame
+		newBoard := game.CopyBoard(b)
+		moveSnake(newBoard, snakeValue, moveCoord.Coordinate)
+		newBoard.MoveCoordinate = moveCoord
+		c <- newBoard
 	}
 
 	successful := 0
-	for _, coord := range newHeadCoords {
-		if prelimaryCheck(b, snakeValue, coord) {
+	for _, moveCoord := range moveCoords {
+		if prelimaryCheck(b, snakeValue, moveCoord.Coordinate) {
 			successful++
-			go output(coord)
+			go output(moveCoord)
 		} else {
 			wg.Done()
 		}
@@ -49,9 +50,9 @@ func boardBranchesBySnakeMove(b game.Board, snakeValue game.GridValue) <-chan ga
 		wg.Wait()
 		// if the snake could not move anywhere, its death is the only path
 		if successful == 0 {
-			newGame := game.CopyBoard(b)
-			killSnake(newGame, snakeValue)
-			c <- newGame
+			newBoard := game.CopyBoard(b)
+			killSnake(newBoard, snakeValue)
+			c <- newBoard
 		}
 		close(c)
 	}()
