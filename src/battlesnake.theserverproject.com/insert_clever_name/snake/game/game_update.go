@@ -20,19 +20,23 @@ type GameUpdate struct {
 
 func CreateGame(state GameUpdate) {
 	snakesMap := createSnakeMappings(state.Board.RawSnakes, state.You.Id)
-	board     := createBoard(state, snakesMap)
+	grid      := createGrid(state, snakesMap)
 
 	Games[state.Game.Id] = &Game{
-		Id:            state.Game.Id,
-		Board:         board,
-		ValueSnakeMap: snakesMap,
+		Id:    state.Game.Id,
+		Board: Board{
+			Grid:   grid,
+			Snakes: snakesMap,
+			MoveCoordinate: MoveCoordinate{NONE, Coordinate{X:-1, Y:-1}},
+		},
+		PreviousMaxDepth: 0,
 	}
 }
 
 func UpdateGame(state GameUpdate) error {
 	if game, ok := Games[state.Game.Id]; ok {
-		game.ValueSnakeMap = createSnakeMappings(state.Board.RawSnakes, state.You.Id)
-		game.Board         = createBoard(state, game.ValueSnakeMap)
+		game.Board.Snakes = createSnakeMappings(state.Board.RawSnakes, state.You.Id)
+		game.Board.Grid   = createGrid(state, game.Board.Snakes)
 		return nil
 	} else {
 		return errors.New("no game with given id for update")

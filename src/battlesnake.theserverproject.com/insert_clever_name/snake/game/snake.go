@@ -15,12 +15,12 @@ type snakeRaw struct {
 	Shout  string       `json:"shout"`
 }
 
-type SnakeByValue map[BoardValue]Snake
+type SnakeByValue map[GridValue]Snake
 
 type Snake struct {
 	Health int
 	Body   []Coordinate
-	Value  BoardValue
+	Value  GridValue
 	Moved  bool
 }
 
@@ -45,14 +45,14 @@ func copySnakeByValues(snakeByValues SnakeByValue) SnakeByValue {
 	return newMap
 }
 
-func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[BoardValue]Snake {
-	snakesMapping := make(map[BoardValue]Snake)
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[GridValue]Snake {
+	snakesMapping := make(map[GridValue]Snake)
 	for i, rawSnake := range rawSnakes {
-		var value BoardValue
+		var value GridValue
 		if rawSnake.Id == myId {
 			value = ME
 		} else {
-			value = BoardValue(i + 1) + ME // ensures that values are unique
+			value = GridValue(i + 1) + ME // ensures that values are unique
 		}
 		snakesMapping[value] = Snake{
 			Health:         rawSnake.Health,

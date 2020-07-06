@@ -5,6 +5,11 @@ import (
 	"math/rand"
 )
 
-func Evaluate(g game.Game) float64 {
+func Evaluate(b game.Board) float64 {
+	if _, ok := b.Snakes[game.ME]; !ok {
+		return 0 // if we are dead, return minimum evaluation
+	} else if len(b.Snakes) == 1 {
+		return 100 // if we are the only snake alive, return maximum evaluation
+	}
 	return float64(rand.Intn(100))
 }
